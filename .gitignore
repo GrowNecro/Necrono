@@ -1,0 +1,15 @@
+# Folder dependensi Node.js
+node_modules/
+
+# File sesi dan autentikasi WhatsApp
+auth_info_baileys/
+
+# Database tugas (opsional, jangan di-upload jika berisi data sensitif)
+data_tugas.json
+
+# Folder media dan hasil ekspor (opsional)
+media/
+export/
+
+# Log file dari NPM
+*.log
