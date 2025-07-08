@@ -3,6 +3,14 @@ const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 const { handleMessage } = require('./handler');
 const { startReminderService } = require('./services/reminderService');
+const fs = require('fs-extra'); // <-- Tambahkan baris ini
+const path = require('path');   // <-- Tambahkan baris ini
+
+// 🔄 DIPERBARUI: Membuat folder yang dibutuhkan secara otomatis saat start
+console.log('Memastikan folder media dan export ada...');
+fs.ensureDirSync(path.join(__dirname, 'media'));
+fs.ensureDirSync(path.join(__dirname, 'export'));
+console.log('✅ Folder siap.');
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -26,14 +34,12 @@ async function startBot() {
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
             console.log('🤖 Bot berhasil terhubung!');
-            // Memulai layanan pengingat setelah bot terhubung
             startReminderService(sock);
         }
     });
 
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
-        // Melempar penanganan pesan ke handler.js
         handleMessage(sock, msg);
     });
 }
