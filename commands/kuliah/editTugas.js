@@ -1,15 +1,15 @@
-const { getSortedTasks } = require('../../utils/taskUtils');
+const { getSortedTasks } = require('../utils/taskUtils');
 
 module.exports = {
-    name: 'edit',
-    aliases: ['edittugas'],
+    name: 'edit tugas',
+    aliases: ['edit'],
     description: 'Mengubah detail tugas.',
-    async execute(sock, msg, args, EDIT_SESSIONS) { // Terima EDIT_SESSIONS
+    async execute(sock, msg, args, EDIT_SESSIONS) {
         const groupJid = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
 
         if (args.length !== 1 || isNaN(args[0])) {
-            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `edit [nomor]`.\nContoh: `edit 1`" }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `edit tugas [nomor]`." }, { quoted: msg });
         }
         
         const taskNumber = parseInt(args[0], 10);
@@ -21,9 +21,10 @@ module.exports = {
 
         const tugasToEdit = tugasGrup[taskNumber - 1];
         
-        // Memulai sesi edit
+        // 🔄 DIPERBARUI: Menambahkan `type: 'tugas'`
         EDIT_SESSIONS[sender] = {
             taskId: tugasToEdit.id,
+            type: 'tugas', // <-- INI BAGIAN PENTINGNYA
             stage: 'pilih_bagian'
         };
 
