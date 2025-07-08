@@ -1,4 +1,4 @@
-const { getSortedTasks } = require('../utils/taskUtils');
+const { getSortedTasks } = require('../../utils/taskUtils');
 
 module.exports = {
     name: 'edit tugas',
