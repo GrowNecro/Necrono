@@ -6,32 +6,35 @@ const mime = require('mime-types');
 module.exports = {
     name: 'ambil',
     aliases: ['ambillampiran'],
-    description: 'Mengambil semua lampiran dari sebuah tugas.',
+    description: 'Mengambil semua lampiran dari sebuah jadwal.',
     async execute(sock, msg, args) {
         const groupJid = msg.key.remoteJid;
 
         if (args.length !== 1 || isNaN(args[0])) {
-            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `ambil [no tugas]`.\nContoh: `ambil 1`" }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `ambil [no jadwal]`.\nContoh: `ambil 1`" }, { quoted: msg });
         }
         
         const taskNumber = parseInt(args[0], 10);
         const tugasGrup = getSortedTasks(groupJid);
         if (taskNumber <= 0 || taskNumber > tugasGrup.length) {
-            return sock.sendMessage(groupJid, { text: `❌ Tugas dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: `❌ Jadwal dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
         }
         
         const tugas = tugasGrup[taskNumber - 1];
         if (!tugas.lampiran || tugas.lampiran.length === 0) {
-            return sock.sendMessage(groupJid, { text: `Tugas "${tugas.matkul}" tidak memiliki lampiran.` }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: `Jadwal "${tugas.judul}" tidak memiliki lampiran.` }, { quoted: msg });
         }
 
-        await sock.sendMessage(groupJid, { text: `Mengirim ${tugas.lampiran.length} lampiran untuk tugas "${tugas.matkul}"...` }, { quoted: msg });
+        // 🔄 DIPERBARUI: Menggunakan `tugas.judul`
+        await sock.sendMessage(groupJid, { text: `Mengirim ${tugas.lampiran.length} lampiran untuk jadwal "${tugas.judul}"...` }, { quoted: msg });
 
         for (const fileName of tugas.lampiran) {
             const filePath = path.join(MEDIA_DIR, groupJid, fileName);
             if (fs.existsSync(filePath)) {
                 const mimeType = mime.lookup(filePath);
-                let messageOptions = { caption: `Lampiran untuk: ${tugas.matkul}\nFile: ${fileName}`, fileName: fileName };
+                
+                // 🔄 DIPERBARUI: Menggunakan `tugas.judul`
+                let messageOptions = { caption: `Lampiran untuk: ${tugas.judul}\nFile: ${fileName}`, fileName: fileName };
                 
                 if (mimeType && mimeType.startsWith('image/')) {
                     messageOptions.image = { url: filePath };

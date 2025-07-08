@@ -5,18 +5,18 @@ const { id } = require('date-fns/locale');
 module.exports = {
     name: 'lihat',
     aliases: ['lihattugas', 'detail'],
-    description: 'Melihat detail tugas.',
+    description: 'Melihat detail jadwal atau tugas.',
     async execute(sock, msg, args) {
         const groupJid = msg.key.remoteJid;
         const tugasGrup = getSortedTasks(groupJid);
 
         if (tugasGrup.length === 0) {
-            return sock.sendMessage(groupJid, { text: '🎉 Tidak ada tugas yang tersimpan.' }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: '🎉 Tidak ada item yang tersimpan.' }, { quoted: msg });
         }
 
-        // Mode: lihat [nomor]
-        if (args.length === 2 && !isNaN(args[1])) {
-            const taskNumber = parseInt(args[1], 10);
+        // 🔄 DIPERBARUI: Mode: lihat [nomor]
+        if (args.length === 1 && !isNaN(args[0])) {
+            const taskNumber = parseInt(args[0], 10);
             if (taskNumber > 0 && taskNumber <= tugasGrup.length) {
                 const t = tugasGrup[taskNumber - 1];
                 const deadlineDate = new Date(t.deadline);
@@ -27,11 +27,11 @@ module.exports = {
                     lampiranText = t.lampiran.map((file, index) => `\n ${index + 1}. ${file}`).join('');
                 }
                 
-                let detailText = `*🔍 DETAIL TUGAS #${taskNumber} 🔍*\n\n` +
+                let detailText = `*🔍 DETAIL ITEM #${taskNumber} 🔍*\n\n` +
                                  `${status}\n` +
-                                 `*Matkul:* ${t.matkul}\n` +
-                                 `*Tugas:* ${t.deskripsi}\n` +
-                                 `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy', { locale: id })}\n` +
+                                 `*Judul:* ${t.judul}\n` + // Menggunakan t.judul
+                                 `*Deskripsi:* ${t.deskripsi}\n` +
+                                 `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n` + // Menampilkan jam
                                  `*Lampiran:* ${lampiranText}`;
 
                 if (t.lampiran && t.lampiran.length > 0) {
@@ -39,20 +39,20 @@ module.exports = {
                 }
                 return sock.sendMessage(groupJid, { text: detailText }, { quoted: msg });
             } else {
-                return sock.sendMessage(groupJid, { text: `❌ Tugas dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+                return sock.sendMessage(groupJid, { text: `❌ Item dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
             }
         }
 
-        // Mode: lihat (semua)
-        let replyText = `*📋 DAFTAR SEMUA TUGAS 📋*\n\n`;
+        // 🔄 DIPERBARUI: Mode: lihat (semua)
+        let replyText = `*📋 DAFTAR SEMUA ITEM 📋*\n\n`;
         tugasGrup.forEach(t => {
             const deadlineDate = new Date(t.deadline);
             const status = isPast(deadlineDate) ? '🟢 (Selesai/Lewat)' : '🔴 (Aktif)';
             const lampiranText = (t.lampiran && t.lampiran.length > 0) ? t.lampiran.join(', ') : 'Tidak ada';
             replyText += `${status}\n` +
-                         `*Matkul:* ${t.matkul}\n` +
-                         `*Tugas:* ${t.deskripsi}\n` +
-                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy', { locale: id })}\n` +
+                         `*Judul:* ${t.judul}\n` + // Menggunakan t.judul
+                         `*Deskripsi:* ${t.deskripsi}\n` +
+                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n` + // Menampilkan jam
                          `*Lampiran:* ${lampiranText}\n\n`;
         });
         await sock.sendMessage(groupJid, { text: replyText.trim() }, { quoted: msg });

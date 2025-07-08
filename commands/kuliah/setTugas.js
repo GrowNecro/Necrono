@@ -1,4 +1,5 @@
 const { getContentType, downloadContentFromMessage } = require('@whiskeysockets/baileys');
+// 🔄 DIPERBARUI: Path require yang benar
 const { loadTugas, saveTugas, parseIndonesianDate, getSortedTasks, MEDIA_DIR } = require('../../utils/taskUtils');
 const { format } = require('date-fns');
 const { id } = require('date-fns/locale');
@@ -8,9 +9,9 @@ const mime = require('mime-types');
 
 module.exports = {
     name: 'set tugas',
-    aliases: ['settugas'],
-    description: 'Menyimpan tugas baru.',
-    async execute(sock, msg, args) {
+    aliases: ['settugas', 'set'],
+    description: 'Menyimpan jadwal atau tugas baru.',
+    async execute(sock, msg, args) { // Menambahkan 'args' agar konsisten
         const groupJid = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
 
@@ -22,26 +23,30 @@ module.exports = {
         const quotedText = quotedMsg.conversation || quotedMsg.extendedTextMessage?.text || quotedMsg.imageMessage?.caption || quotedMsg.videoMessage?.caption || quotedMsg.documentMessage?.caption || '';
 
         if (!quotedText) {
-            return sock.sendMessage(groupJid, { text: '❌ Gagal! Pesan yang Anda balas tidak memiliki teks/caption tugas.' }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: '❌ Gagal! Pesan yang Anda balas tidak memiliki teks/caption.' }, { quoted: msg });
         }
 
         const lines = quotedText.split('\n');
-        const matkul = lines[0].trim();
+        const judul = lines[0].trim();
         const deskripsi = lines.slice(1).join('\n').trim();
         const deadlineDate = parseIndonesianDate(quotedText);
 
-        if (!matkul || !deskripsi || !deadlineDate) {
-            return sock.sendMessage(groupJid, { text: '❌ Gagal! Format tugas tidak sesuai. Pastikan ada nama matkul, deskripsi, dan tenggat (contoh: 12 Juli 2025 jam 15:00).' }, { quoted: msg });
+        if (!judul || !deskripsi || !deadlineDate) {
+            return sock.sendMessage(groupJid, { text: '❌ Gagal! Format tidak sesuai. Pastikan ada Judul, Deskripsi, dan Tenggat.' }, { quoted: msg });
         }
         
-        // 🔄 DIPERBARUI: Menyimpan tanggal sebagai ISO String lengkap
         const deadline = deadlineDate.toISOString();
         const allTugas = loadTugas();
         if (!allTugas[groupJid]) allTugas[groupJid] = [];
         
         const newTugas = {
-            id: Date.now(), matkul, deskripsi, deadline, lampiran: [],
-            pengingat: { '3d': false, '1d': false, '3h': false }, ditambahkanOleh: sender
+            id: Date.now(),
+            judul: judul,
+            deskripsi,
+            deadline,
+            lampiran: [],
+            pengingat: { '30d': false, '15d': false, '10d': false, '3d': false, '1d': false, '3h': false },
+            ditambahkanOleh: sender
         };
 
         const quotedType = getContentType(quotedMsg);
@@ -66,10 +71,10 @@ module.exports = {
         allTugas[groupJid].push(newTugas);
         saveTugas(allTugas);
         
-        // 🔄 DIPERBARUI: Menampilkan jam di pesan balasan
-        let replyText = `✅ *Tugas berhasil disimpan!*\n\n` +
-                        `📘 *Matkul:* ${newTugas.matkul}\n` +
-                        `📝 *Tugas:* ${newTugas.deskripsi}\n` +
+        // 🔄 DIPERBARUI: Menambahkan 'yyyy' untuk menampilkan tahun
+        let replyText = `✅ *Jadwal berhasil disimpan!*\n\n` +
+                        `📘 *Judul:* ${newTugas.judul}\n` +
+                        `📝 *Deskripsi:* ${newTugas.deskripsi}\n` +
                         `📅 *Tenggat:* ${format(deadlineDate, 'd MMMM yyyy, HH:mm', { locale: id })}\n` +
                         `📎 *Lampiran:* ${newTugas.lampiran.length > 0 ? newTugas.lampiran[0] : 'Tidak ada'}`;
         

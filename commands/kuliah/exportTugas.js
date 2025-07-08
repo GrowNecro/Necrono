@@ -8,11 +8,10 @@ const { id } = require('date-fns/locale');
 
 module.exports = {
     name: 'export',
-    description: 'Ekspor tugas ke format PDF atau CSV.',
+    description: 'Ekspor jadwal ke format PDF atau CSV.',
     async execute(sock, msg, args) {
         const groupJid = msg.key.remoteJid;
         
-        // 🔄 DIPERBARUI: Mengambil argumen dari indeks yang benar (args[0])
         const formatExport = args[0]?.toLowerCase();
         
         if (formatExport !== 'pdf' && formatExport !== 'csv') {
@@ -21,10 +20,10 @@ module.exports = {
 
         const tugasGrup = getSortedTasks(groupJid);
         if (tugasGrup.length === 0) {
-            return sock.sendMessage(groupJid, { text: 'Tidak ada tugas untuk diekspor.' }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: 'Tidak ada data untuk diekspor.' }, { quoted: msg });
         }
 
-        const fileName = `export-tugas-${Date.now()}`;
+        const fileName = `export-jadwal-${Date.now()}`;
         const filePath = path.join(EXPORT_DIR, `${fileName}.${formatExport}`);
 
         if (formatExport === 'pdf') {
@@ -32,13 +31,15 @@ module.exports = {
                 const doc = new PDFDocument({ margin: 30, size: 'A4' });
                 const stream = fs.createWriteStream(filePath);
                 doc.pipe(stream);
-                doc.fontSize(16).text('Daftar Tugas Kelas', { align: 'center' }).moveDown();
+                doc.fontSize(16).text('Daftar Jadwal & Tugas', { align: 'center' }).moveDown();
                 tugasGrup.forEach(t => {
                     const deadlineDate = new Date(t.deadline);
                     const status = isPast(deadlineDate) ? 'Selesai/Lewat' : 'Aktif';
-                    doc.fontSize(12).font('Helvetica-Bold').text(`Matkul: ${t.matkul}`);
-                    doc.font('Helvetica').text(`Tugas: ${t.deskripsi}`, { continued: false });
-                    doc.text(`Tenggat: ${format(deadlineDate, 'EEEE, d MMMM yyyy', { locale: id })}`);
+                    
+                    // 🔄 DIPERBARUI: Menggunakan t.judul
+                    doc.fontSize(12).font('Helvetica-Bold').text(`Judul: ${t.judul}`);
+                    doc.font('Helvetica').text(`Deskripsi: ${t.deskripsi}`, { continued: false });
+                    doc.text(`Tenggat: ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}`);
                     doc.text(`Status: ${status}`);
                     doc.text(`Lampiran: ${(t.lampiran && t.lampiran.length > 0 && t.lampiran.join(', ')) || 'Tidak ada'}`).moveDown();
                 });
@@ -51,14 +52,16 @@ module.exports = {
             const csvWriter = createObjectCsvWriter({
                 path: filePath,
                 header: [
-                    { id: 'matkul', title: 'Matkul' },
-                    { id: 'deskripsi', title: 'Deskripsi Tugas' },
+                    // 🔄 DIPERBARUI: Menggunakan 'judul'
+                    { id: 'judul', title: 'Judul' },
+                    { id: 'deskripsi', title: 'Deskripsi' },
                     { id: 'deadline', title: 'Tenggat' },
                     { id: 'lampiran', title: 'Lampiran' }
                 ]
             });
             const records = tugasGrup.map(t => ({
                 ...t,
+                deadline: format(new Date(t.deadline), 'yyyy-MM-dd HH:mm'),
                 lampiran: (t.lampiran && t.lampiran.length > 0 && t.lampiran.join(', ')) || ''
             }));
             await csvWriter.writeRecords(records);
@@ -67,7 +70,7 @@ module.exports = {
         await sock.sendMessage(groupJid, {
             document: { url: filePath },
             mimetype: formatExport === 'pdf' ? 'application/pdf' : 'text/csv',
-            fileName: `Daftar Tugas.${formatExport}`
+            fileName: `Daftar-Jadwal.${formatExport}`
         }, { quoted: msg });
     }
 };

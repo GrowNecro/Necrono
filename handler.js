@@ -1,16 +1,11 @@
 const { getContentType } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
-const { loadTugas, saveTugas, parseIndonesianDate: parseDateTugas } = require('./utils/taskUtils');
-const { loadProker, saveProker, parseIndonesianDate: parseDateProker } = require('./utils/prokerUtils');
+const { loadTugas, saveTugas, parseIndonesianDate } = require('./utils/taskUtils'); // Hanya perlu taskUtils
 const { format } = require('date-fns');
 
 const commands = new Map();
 
-/**
- * Fungsi rekursif untuk memuat semua file perintah dari direktori dan subdirektori.
- * @param {string} dir - Direktori awal untuk memulai pemindaian.
- */
 function loadCommands(dir) {
     const files = fs.readdirSync(dir, { withFileTypes: true });
     for (const file of files) {
@@ -32,7 +27,6 @@ function loadCommands(dir) {
         }
     }
 }
-
 loadCommands(path.join(__dirname, 'commands'));
 console.log('✅ Perintah berhasil dimuat:', Array.from(commands.keys()));
 
@@ -48,21 +42,16 @@ const handleMessage = async (sock, msg) => {
     const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
     const textLower = text.toLowerCase();
     
+    // 🔄 Logika Sesi Edit Disederhanakan
     if (EDIT_SESSIONS[sender]) {
         const session = EDIT_SESSIONS[sender];
-        
-        const isTugasSession = session.type === 'tugas';
-        const dataLoader = isTugasSession ? loadTugas : loadProker;
-        const dataSaver = isTugasSession ? saveTugas : saveProker;
-        const dateParser = isTugasSession ? parseDateTugas : parseDateProker;
-        
-        const allData = dataLoader();
-        if (!allData[groupJid]) allData[groupJid] = [];
-        const itemIndex = allData[groupJid].findIndex(t => t.id === session.taskId);
+        const allTugas = loadTugas();
+        if (!allTugas[groupJid]) allTugas[groupJid] = [];
+        const tugasIndex = allTugas[groupJid].findIndex(t => t.id === session.taskId);
 
-        if (itemIndex === -1) {
+        if (tugasIndex === -1) {
             delete EDIT_SESSIONS[sender];
-            return sock.sendMessage(groupJid, { text: `❌ Gagal, ${session.type} tidak lagi ditemukan.` }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: "❌ Gagal, item tidak lagi ditemukan." }, { quoted: msg });
         }
         if (textLower === 'batal') {
             delete EDIT_SESSIONS[sender];
@@ -72,27 +61,27 @@ const handleMessage = async (sock, msg) => {
         switch (session.stage) {
             case 'pilih_bagian':
                 const pilihan = parseInt(text, 10);
-                if (pilihan === 1) { session.stage = 'edit_nama'; return sock.sendMessage(groupJid, { text: `Silakan kirim ${isTugasSession ? 'nama mata kuliah' : 'nama proker'} yang baru.` }, { quoted: msg }); }
-                if (pilihan === 2) { session.stage = 'edit_deskripsi'; return sock.sendMessage(groupJid, { text: `Silakan kirim ${isTugasSession ? 'deskripsi tugas' : 'detail proker'} yang baru.` }, { quoted: msg }); }
-                if (pilihan === 3) { session.stage = 'edit_tanggal'; return sock.sendMessage(groupJid, { text: "Silakan kirim tanggal yang baru (contoh: 25 Desember 2025)." }, { quoted: msg }); }
-                return sock.sendMessage(groupJid, { text: "Pilihan tidak valid. Kirim angka 1, 2, atau 3. Kirim 'batal' untuk keluar." }, { quoted: msg });
+                if (pilihan === 1) { session.stage = 'edit_judul'; return sock.sendMessage(groupJid, { text: "Silakan kirim judul yang baru." }, { quoted: msg }); }
+                if (pilihan === 2) { session.stage = 'edit_deskripsi'; return sock.sendMessage(groupJid, { text: "Silakan kirim deskripsi yang baru." }, { quoted: msg }); }
+                if (pilihan === 3) { session.stage = 'edit_tenggat'; return sock.sendMessage(groupJid, { text: "Silakan kirim tanggal yang baru." }, { quoted: msg }); }
+                return sock.sendMessage(groupJid, { text: "Pilihan tidak valid." }, { quoted: msg });
             
-            case 'edit_nama':
-                allData[groupJid][itemIndex][isTugasSession ? 'matkul' : 'nama'] = text;
+            case 'edit_judul':
+                allTugas[groupJid][tugasIndex].judul = text;
                 break;
             case 'edit_deskripsi':
-                allData[groupJid][itemIndex][isTugasSession ? 'deskripsi' : 'detail'] = text;
+                allTugas[groupJid][tugasIndex].deskripsi = text;
                 break;
-            case 'edit_tanggal':
-                const newDeadline = dateParser(text);
-                if (!newDeadline) return sock.sendMessage(groupJid, { text: "❌ Format tanggal salah. Coba lagi (contoh: 25 Desember 2025)." }, { quoted: msg });
-                allData[groupJid][itemIndex][isTugasSession ? 'deadline' : 'tanggal'] = newDeadline.toISOString();
+            case 'edit_tenggat':
+                const newDeadline = parseIndonesianDate(text);
+                if (!newDeadline) return sock.sendMessage(groupJid, { text: "❌ Format tanggal salah." }, { quoted: msg });
+                allTugas[groupJid][tugasIndex].deadline = newDeadline.toISOString();
                 break;
         }
         
-        dataSaver(allData);
+        saveTugas(allTugas);
         delete EDIT_SESSIONS[sender];
-        await sock.sendMessage(groupJid, { text: `✅ ${session.type} berhasil diperbarui!` }, { quoted: msg });
+        await sock.sendMessage(groupJid, { text: "✅ Jadwal berhasil diperbarui!" }, { quoted: msg });
         return;
     }
 

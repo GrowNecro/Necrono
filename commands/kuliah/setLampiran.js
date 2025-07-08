@@ -6,9 +6,9 @@ const mime = require('mime-types');
 
 module.exports = {
     name: 'set lampiran',
-    aliases: ['setlampiran'],
-    description: 'Menambah lampiran ke tugas yang ada.',
-    async execute(sock, msg, args) { // 'args' sekarang sudah bersih
+    aliases: ['setlampiran', 'tambahlampiran'],
+    description: 'Menambah lampiran ke item yang ada.',
+    async execute(sock, msg, args) {
         const groupJid = msg.key.remoteJid;
 
         if (!msg.message.extendedTextMessage?.contextInfo?.quotedMessage) {
@@ -21,7 +21,7 @@ module.exports = {
         const taskNumber = parseInt(args[0], 10);
         const tugasGrup = getSortedTasks(groupJid);
         if (taskNumber <= 0 || taskNumber > tugasGrup.length) {
-            return sock.sendMessage(groupJid, { text: `❌ Tugas dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+            return sock.sendMessage(groupJid, { text: `❌ Item dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
         }
         
         const quotedMsg = msg.message.extendedTextMessage.contextInfo.quotedMessage;
@@ -53,7 +53,9 @@ module.exports = {
                 }
                 allTugas[groupJid][tugasIndex].lampiran.push(fileName);
                 saveTugas(allTugas);
-                return sock.sendMessage(groupJid, { text: `✅ Lampiran baru berhasil ditambahkan ke tugas *"${tugasToUpdate.matkul}"*.` }, { quoted: msg });
+                
+                // 🔄 DIPERBARUI: Menggunakan tugasToUpdate.judul
+                return sock.sendMessage(groupJid, { text: `✅ Lampiran baru berhasil ditambahkan ke item *"${tugasToUpdate.judul}"*.` }, { quoted: msg });
             }
         } catch (err) {
             console.error('Gagal mengunduh lampiran terpisah:', err);
