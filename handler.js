@@ -3,18 +3,16 @@ const fs = require('fs');
 const path = require('path');
 const { loadTugas, saveTugas, parseIndonesianDate } = require('./utils/taskUtils');
 const { format } = require('date-fns');
+const { replyWithTyping } = require('./utils/replyUtils');
 
 const commands = new Map();
 
-/**
- * Fungsi rekursif untuk memuat semua file perintah dari direktori dan subdirektori.
- */
 function loadCommands(dir) {
     const files = fs.readdirSync(dir, { withFileTypes: true });
     for (const file of files) {
         const fullPath = path.join(dir, file.name);
         if (file.isDirectory()) {
-            loadCommands(fullPath); // Panggil lagi untuk subfolder
+            loadCommands(fullPath);
         } else if (file.name.endsWith('.js')) {
             try {
                 const command = require(fullPath);
@@ -30,7 +28,6 @@ function loadCommands(dir) {
         }
     }
 }
-
 loadCommands(path.join(__dirname, 'commands'));
 console.log('✅ Perintah berhasil dimuat:', Array.from(commands.keys()));
 
@@ -39,11 +36,11 @@ const EDIT_SESSIONS = {};
 const handleMessage = async (sock, msg) => {
     if (!msg.message || msg.key.fromMe) return;
 
-    const chatId = msg.key.remoteJid; // Menggunakan chatId agar bisa untuk grup & pribadi
+    const chatId = msg.key.remoteJid;
     const sender = msg.key.participant || msg.key.remoteJid;
     const originalText = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
 
-    // Logika Sesi Edit
+    // 🔄 Logika Sesi Edit sekarang menggunakan replyWithTyping
     if (EDIT_SESSIONS[sender]) {
         const session = EDIT_SESSIONS[sender];
         const allTugas = loadTugas();
@@ -52,20 +49,20 @@ const handleMessage = async (sock, msg) => {
 
         if (tugasIndex === -1) {
             delete EDIT_SESSIONS[sender];
-            return sock.sendMessage(chatId, { text: "❌ Gagal, item tidak lagi ditemukan." }, { quoted: msg });
+            return replyWithTyping(sock, msg, "❌ Gagal, item tidak lagi ditemukan.");
         }
         if (originalText.toLowerCase() === 'batal') {
             delete EDIT_SESSIONS[sender];
-            return sock.sendMessage(chatId, { text: "📝 Edit dibatalkan." }, { quoted: msg });
+            return replyWithTyping(sock, msg, "📝 Edit dibatalkan.");
         }
 
         switch (session.stage) {
             case 'pilih_bagian':
                 const pilihan = parseInt(originalText, 10);
-                if (pilihan === 1) { session.stage = 'edit_judul'; return sock.sendMessage(chatId, { text: "Silakan kirim judul yang baru." }, { quoted: msg }); }
-                if (pilihan === 2) { session.stage = 'edit_deskripsi'; return sock.sendMessage(chatId, { text: "Silakan kirim deskripsi yang baru." }, { quoted: msg }); }
-                if (pilihan === 3) { session.stage = 'edit_tenggat'; return sock.sendMessage(chatId, { text: "Silakan kirim tanggal yang baru." }, { quoted: msg }); }
-                return sock.sendMessage(chatId, { text: "Pilihan tidak valid." }, { quoted: msg });
+                if (pilihan === 1) { session.stage = 'edit_judul'; return replyWithTyping(sock, msg, "Silakan kirim judul yang baru."); }
+                if (pilihan === 2) { session.stage = 'edit_deskripsi'; return replyWithTyping(sock, msg, "Silakan kirim deskripsi yang baru."); }
+                if (pilihan === 3) { session.stage = 'edit_tenggat'; return replyWithTyping(sock, msg, "Silakan kirim tanggal yang baru."); }
+                return replyWithTyping(sock, msg, "Pilihan tidak valid.");
             
             case 'edit_judul':
                 allTugas[chatId][tugasIndex].judul = originalText;
@@ -75,18 +72,17 @@ const handleMessage = async (sock, msg) => {
                 break;
             case 'edit_tenggat':
                 const newDeadline = parseIndonesianDate(originalText);
-                if (!newDeadline) return sock.sendMessage(chatId, { text: "❌ Format tanggal salah." }, { quoted: msg });
+                if (!newDeadline) return replyWithTyping(sock, msg, "❌ Format tanggal salah.");
                 allTugas[chatId][tugasIndex].deadline = newDeadline.toISOString();
                 break;
         }
         
         saveTugas(allTugas);
         delete EDIT_SESSIONS[sender];
-        await sock.sendMessage(chatId, { text: "✅ Jadwal berhasil diperbarui!" }, { quoted: msg });
+        await replyWithTyping(sock, msg, "✅ Jadwal berhasil diperbarui!");
         return;
     }
 
-    // Logika Panggilan Bot & Pemrosesan Perintah
     let textToProcess = originalText;
     const botCallNames = ['necrono', 'necro', 'nec', 'crono'];
 
@@ -97,7 +93,7 @@ const handleMessage = async (sock, msg) => {
         }
     }
 
-    if (!textToProcess) return; // Abaikan jika hanya nama bot yang dikirim tanpa perintah
+    if (!textToProcess) return;
 
     const allArgs = textToProcess.split(' ');
     let commandName, commandArgs;
@@ -118,7 +114,7 @@ const handleMessage = async (sock, msg) => {
             await command.execute(sock, msg, commandArgs, EDIT_SESSIONS); 
         } catch (error) {
             console.error(`Error saat menjalankan perintah ${commandName}:`, error);
-            await sock.sendMessage(chatId, { text: 'Terjadi error saat menjalankan perintah.' }, { quoted: msg });
+            await replyWithTyping(sock, msg, 'Terjadi error saat menjalankan perintah.');
         }
     }
 };

@@ -1,4 +1,5 @@
 const { getSortedTasks } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const { format, isPast } = require('date-fns');
 const { id } = require('date-fns/locale');
 
@@ -11,10 +12,10 @@ module.exports = {
         const tugasGrup = getSortedTasks(groupJid);
 
         if (tugasGrup.length === 0) {
-            return sock.sendMessage(groupJid, { text: '🎉 Tidak ada item yang tersimpan.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '🎉 Tidak ada item yang tersimpan.');
         }
 
-        // 🔄 DIPERBARUI: Mode: lihat [nomor]
+        // Mode: lihat [nomor]
         if (args.length === 1 && !isNaN(args[0])) {
             const taskNumber = parseInt(args[0], 10);
             if (taskNumber > 0 && taskNumber <= tugasGrup.length) {
@@ -29,32 +30,31 @@ module.exports = {
                 
                 let detailText = `*🔍 DETAIL ITEM #${taskNumber} 🔍*\n\n` +
                                  `${status}\n` +
-                                 `*Judul:* ${t.judul}\n` + // Menggunakan t.judul
+                                 `*Judul:* ${t.judul}\n` +
                                  `*Deskripsi:* ${t.deskripsi}\n` +
-                                 `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n` + // Menampilkan jam
+                                 `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM<x_bin_534>, HH:mm', { locale: id })}\n` +
                                  `*Lampiran:* ${lampiranText}`;
 
                 if (t.lampiran && t.lampiran.length > 0) {
                     detailText += `\n\n_Untuk mengambil, ketik "ambil ${taskNumber}"_`;
                 }
-                return sock.sendMessage(groupJid, { text: detailText }, { quoted: msg });
+                return replyWithTyping(sock, msg, detailText);
             } else {
-                return sock.sendMessage(groupJid, { text: `❌ Item dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+                return replyWithTyping(sock, msg, `❌ Item dengan nomor ${taskNumber} tidak ditemukan.`);
             }
         }
 
-        // 🔄 DIPERBARUI: Mode: lihat (semua)
         let replyText = `*📋 DAFTAR SEMUA ITEM 📋*\n\n`;
         tugasGrup.forEach(t => {
             const deadlineDate = new Date(t.deadline);
             const status = isPast(deadlineDate) ? '🟢 (Selesai/Lewat)' : '🔴 (Aktif)';
             const lampiranText = (t.lampiran && t.lampiran.length > 0) ? t.lampiran.join(', ') : 'Tidak ada';
             replyText += `${status}\n` +
-                         `*Judul:* ${t.judul}\n` + // Menggunakan t.judul
+                         `*Judul:* ${t.judul}\n` +
                          `*Deskripsi:* ${t.deskripsi}\n` +
-                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n` + // Menampilkan jam
+                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM<x_bin_534>, HH:mm', { locale: id })}\n` +
                          `*Lampiran:* ${lampiranText}\n\n`;
         });
-        await sock.sendMessage(groupJid, { text: replyText.trim() }, { quoted: msg });
+        await replyWithTyping(sock, msg, replyText.trim());
     }
 };

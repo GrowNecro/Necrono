@@ -1,6 +1,6 @@
 const { getContentType, downloadContentFromMessage } = require('@whiskeysockets/baileys');
-// 🔄 DIPERBARUI: Path require yang benar
 const { loadTugas, saveTugas, parseIndonesianDate, getSortedTasks, MEDIA_DIR } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const { format } = require('date-fns');
 const { id } = require('date-fns/locale');
 const path = require('path');
@@ -11,19 +11,19 @@ module.exports = {
     name: 'set tugas',
     aliases: ['settugas', 'set'],
     description: 'Menyimpan jadwal atau tugas baru.',
-    async execute(sock, msg, args) { // Menambahkan 'args' agar konsisten
+    async execute(sock, msg, args) {
         const groupJid = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
 
         if (!msg.message.extendedTextMessage?.contextInfo?.quotedMessage) {
-            return sock.sendMessage(groupJid, { text: '❌ Perintah ini harus digunakan dengan membalas (reply) pesan.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '❌ Perintah ini harus digunakan dengan membalas (reply) pesan.');
         }
 
         const quotedMsg = msg.message.extendedTextMessage.contextInfo.quotedMessage;
         const quotedText = quotedMsg.conversation || quotedMsg.extendedTextMessage?.text || quotedMsg.imageMessage?.caption || quotedMsg.videoMessage?.caption || quotedMsg.documentMessage?.caption || '';
 
         if (!quotedText) {
-            return sock.sendMessage(groupJid, { text: '❌ Gagal! Pesan yang Anda balas tidak memiliki teks/caption.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '❌ Gagal! Pesan yang Anda balas tidak memiliki teks/caption.');
         }
 
         const lines = quotedText.split('\n');
@@ -32,7 +32,7 @@ module.exports = {
         const deadlineDate = parseIndonesianDate(quotedText);
 
         if (!judul || !deskripsi || !deadlineDate) {
-            return sock.sendMessage(groupJid, { text: '❌ Gagal! Format tidak sesuai. Pastikan ada Judul, Deskripsi, dan Tenggat.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '❌ Gagal! Format tidak sesuai. Pastikan ada Judul, Deskripsi, dan Tenggat.');
         }
         
         const deadline = deadlineDate.toISOString();
@@ -71,7 +71,6 @@ module.exports = {
         allTugas[groupJid].push(newTugas);
         saveTugas(allTugas);
         
-        // 🔄 DIPERBARUI: Menambahkan 'yyyy' untuk menampilkan tahun
         let replyText = `✅ *Jadwal berhasil disimpan!*\n\n` +
                         `📘 *Judul:* ${newTugas.judul}\n` +
                         `📝 *Deskripsi:* ${newTugas.deskripsi}\n` +
@@ -80,9 +79,10 @@ module.exports = {
         
         const tugasGrup = getSortedTasks(groupJid);
         const taskNumber = tugasGrup.findIndex(t => t.id === newTugas.id) + 1;
-        if (taskNumber > 0) {
-            replyText += `\n\n_Tips: Untuk menambah lampiran lain, balas file/foto dengan "set lampiran ${taskNumber}"_`;
+        if (taskNumber > 0 && !newTugas.lampiran.length) {
+            replyText += `\n\n_Tips: Untuk menambah lampiran, balas file/foto dengan "set lampiran ${taskNumber}"_`;
         }
-        await sock.sendMessage(groupJid, { text: replyText }, { quoted: msg });
+        
+        await replyWithTyping(sock, msg, replyText);
     }
 };

@@ -1,8 +1,9 @@
+const { replyWithTyping } = require('../../utils/replyUtils');
+
 module.exports = {
     name: 'tutorial',
     description: 'Menampilkan panduan lengkap cara penggunaan bot.',
     async execute(sock, msg) {
-        const groupJid = msg.key.remoteJid;
 
         const tutorialText = `*📚 TUTORIAL PENGGUNAAN BOT NECRONO 📚*\n\n` +
             `Selamat datang! Berikut adalah cara menggunakan fitur-fitur utama bot ini.\n\n` +
@@ -37,6 +38,6 @@ module.exports = {
             `   (Contoh: \`ambil 2\`)\n\n` +
             `*Selamat Mencoba!* Ketik \`menu\` untuk melihat daftar lengkap perintah.`;
 
-        await sock.sendMessage(groupJid, { text: tutorialText }, { quoted: msg });
+        await replyWithTyping(sock, msg, tutorialText);
     }
 };

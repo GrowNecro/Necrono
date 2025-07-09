@@ -1,4 +1,5 @@
 const { getSortedTasks } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const { isWithinInterval, addDays, format, isPast } = require('date-fns');
 const { id } = require('date-fns/locale');
 
@@ -16,19 +17,18 @@ module.exports = {
         const tugasMingguIni = tugasGrup.filter(t => isWithinInterval(new Date(t.deadline), { start, end }));
 
         if (tugasMingguIni.length === 0) {
-            return sock.sendMessage(groupJid, { text: '🙌 Tidak ada jadwal dengan tenggat dalam 7 hari ke depan.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '🙌 Tidak ada jadwal dengan tenggat dalam 7 hari ke depan.');
         }
         
         let replyText = `*🗓️ JADWAL 7 HARI KE DEPAN 🗓️*\n\n`;
         tugasMingguIni.forEach((t) => {
             const deadlineDate = new Date(t.deadline);
-            // Logika status aktif/selesai bisa ditambahkan kembali jika perlu
             replyText += `🔴 (Aktif)\n` +
-                         `*Judul:* ${t.judul}\n` + // Menggunakan t.judul
+                         `*Judul:* ${t.judul}\n` +
                          `*Deskripsi:* ${t.deskripsi}\n` +
-                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n\n`; // Menampilkan jam
+                         `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n\n`;
         });
         
-        await sock.sendMessage(groupJid, { text: replyText.trim() }, { quoted: msg });
+        await replyWithTyping(sock, msg, replyText.trim());
     }
 };

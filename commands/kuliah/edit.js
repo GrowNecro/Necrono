@@ -1,4 +1,5 @@
 const { getSortedTasks } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 
 module.exports = {
     name: 'edit',
@@ -9,14 +10,14 @@ module.exports = {
         const sender = msg.key.participant || msg.key.remoteJid;
 
         if (args.length !== 1 || isNaN(args[0])) {
-            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `edit [nomor]`." }, { quoted: msg });
+            return replyWithTyping(sock, msg, "Format salah. Gunakan `edit [nomor]`.");
         }
         
         const taskNumber = parseInt(args[0], 10);
         const tugasGrup = getSortedTasks(groupJid);
 
         if (taskNumber <= 0 || taskNumber > tugasGrup.length) {
-            return sock.sendMessage(groupJid, { text: `❌ Item dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+            return replyWithTyping(sock, msg, `❌ Item dengan nomor ${taskNumber} tidak ditemukan.`);
         }
 
         const tugasToEdit = tugasGrup[taskNumber - 1];
@@ -27,7 +28,6 @@ module.exports = {
             stage: 'pilih_bagian'
         };
 
-        // 🔄 DIPERBARUI: Menggunakan tugas.judul dan istilah yang lebih umum
         const editMenuText = `*📝 Edit Item: ${tugasToEdit.judul}*\n\n` +
             `Bagian mana yang ingin Anda ubah?\n` +
             `1. Judul\n` +
@@ -35,6 +35,6 @@ module.exports = {
             `3. Tenggat\n\n` +
             `Kirim angka pilihan Anda (1-3). Kirim 'batal' untuk keluar.`;
         
-        await sock.sendMessage(groupJid, { text: editMenuText }, { quoted: msg });
+        await replyWithTyping(sock, msg, editMenuText);
     }
 };

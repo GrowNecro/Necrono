@@ -1,4 +1,5 @@
 const { getSortedTasks } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const { format, isPast } = require('date-fns');
 const { id } = require('date-fns/locale');
 
@@ -11,7 +12,7 @@ module.exports = {
         const tugasGrup = getSortedTasks(groupJid);
 
         if (tugasGrup.length === 0) {
-            return sock.sendMessage(groupJid, { text: '🎉 Tidak ada item yang tersimpan.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, '🎉 Tidak ada item yang tersimpan.');
         }
 
         let replyText = '*🗒️ DAFTAR ITEM (TERBARU DI ATAS) 🗒️*\n\n';
@@ -20,11 +21,10 @@ module.exports = {
             const isDone = isPast(deadlineDate);
             const status = isDone ? ' (Selesai)' : '';
             
-            // 🔄 DIPERBARUI: Menggunakan t.judul
             replyText += `${index + 1}. ${t.judul} - *DL: ${format(deadlineDate, 'dd MMM yyyy', { locale: id })}*${status}\n`;
         });
         replyText += '\nKetik `lihat [nomor]` untuk detail.';
         
-        await sock.sendMessage(groupJid, { text: replyText }, { quoted: msg });
+        await replyWithTyping(sock, msg, replyText);
     }
 };

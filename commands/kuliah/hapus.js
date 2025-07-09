@@ -1,4 +1,5 @@
 const { getSortedTasks, loadTugas, saveTugas, MEDIA_DIR } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const path = require('path');
 const fs = require('fs-extra');
 
@@ -10,14 +11,14 @@ module.exports = {
         const groupJid = msg.key.remoteJid;
 
         if (args.length !== 1 || isNaN(args[0])) {
-            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `hapus [nomor]`.\nContoh: `hapus 1`" }, { quoted: msg });
+            return replyWithTyping(sock, msg, "Format salah. Gunakan `hapus [nomor]`.\nContoh: `hapus 1`");
         }
         
         const taskNumber = parseInt(args[0], 10);
         const tugasGrup = getSortedTasks(groupJid);
 
         if (taskNumber <= 0 || taskNumber > tugasGrup.length) {
-            return sock.sendMessage(groupJid, { text: `❌ Item dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+            return replyWithTyping(sock, msg, `❌ Item dengan nomor ${taskNumber} tidak ditemukan.`);
         }
 
         const tugasToDelete = tugasGrup[taskNumber - 1];
@@ -40,7 +41,6 @@ module.exports = {
         
         saveTugas(allTugas);
         
-        // 🔄 DIPERBARUI: Menggunakan tugas.judul
-        await sock.sendMessage(groupJid, { text: `✅ Item "${tugasToDelete.judul}" berhasil dihapus.` }, { quoted: msg });
+        await replyWithTyping(sock, msg, `✅ Item "${tugasToDelete.judul}" berhasil dihapus.`);
     }
 };

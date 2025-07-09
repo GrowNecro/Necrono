@@ -1,4 +1,5 @@
 const { getSortedTasks, EXPORT_DIR } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const PDFDocument = require('pdfkit');
 const { createObjectCsvWriter } = require('csv-writer');
 const fs = require('fs-extra');
@@ -15,13 +16,15 @@ module.exports = {
         const formatExport = args[0]?.toLowerCase();
         
         if (formatExport !== 'pdf' && formatExport !== 'csv') {
-            return sock.sendMessage(groupJid, { text: 'Gunakan `export pdf` atau `export csv`.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, 'Gunakan `export pdf` atau `export csv`.');
         }
 
         const tugasGrup = getSortedTasks(groupJid);
         if (tugasGrup.length === 0) {
-            return sock.sendMessage(groupJid, { text: 'Tidak ada data untuk diekspor.' }, { quoted: msg });
+            return replyWithTyping(sock, msg, 'Tidak ada data untuk diekspor.');
         }
+
+        await replyWithTyping(sock, msg, `Membuat file ${formatExport.toUpperCase()}... mohon tunggu sebentar.`);
 
         const fileName = `export-jadwal-${Date.now()}`;
         const filePath = path.join(EXPORT_DIR, `${fileName}.${formatExport}`);
@@ -36,7 +39,6 @@ module.exports = {
                     const deadlineDate = new Date(t.deadline);
                     const status = isPast(deadlineDate) ? 'Selesai/Lewat' : 'Aktif';
                     
-                    // 🔄 DIPERBARUI: Menggunakan t.judul
                     doc.fontSize(12).font('Helvetica-Bold').text(`Judul: ${t.judul}`);
                     doc.font('Helvetica').text(`Deskripsi: ${t.deskripsi}`, { continued: false });
                     doc.text(`Tenggat: ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}`);
@@ -52,7 +54,6 @@ module.exports = {
             const csvWriter = createObjectCsvWriter({
                 path: filePath,
                 header: [
-                    // 🔄 DIPERBARUI: Menggunakan 'judul'
                     { id: 'judul', title: 'Judul' },
                     { id: 'deskripsi', title: 'Deskripsi' },
                     { id: 'deadline', title: 'Tenggat' },

@@ -1,4 +1,5 @@
 const { getSortedTasks, MEDIA_DIR } = require('../../utils/taskUtils');
+const { replyWithTyping } = require('../../utils/replyUtils');
 const path = require('path');
 const fs = require('fs-extra');
 const mime = require('mime-types');
@@ -11,29 +12,27 @@ module.exports = {
         const groupJid = msg.key.remoteJid;
 
         if (args.length !== 1 || isNaN(args[0])) {
-            return sock.sendMessage(groupJid, { text: "Format salah. Gunakan `ambil [no jadwal]`.\nContoh: `ambil 1`" }, { quoted: msg });
+            return replyWithTyping(sock, msg, "Format salah. Gunakan `ambil [no jadwal]`.\nContoh: `ambil 1`");
         }
         
         const taskNumber = parseInt(args[0], 10);
         const tugasGrup = getSortedTasks(groupJid);
         if (taskNumber <= 0 || taskNumber > tugasGrup.length) {
-            return sock.sendMessage(groupJid, { text: `❌ Jadwal dengan nomor ${taskNumber} tidak ditemukan.` }, { quoted: msg });
+            return replyWithTyping(sock, msg, `❌ Jadwal dengan nomor ${taskNumber} tidak ditemukan.`);
         }
         
         const tugas = tugasGrup[taskNumber - 1];
         if (!tugas.lampiran || tugas.lampiran.length === 0) {
-            return sock.sendMessage(groupJid, { text: `Jadwal "${tugas.judul}" tidak memiliki lampiran.` }, { quoted: msg });
+            return replyWithTyping(sock, msg, `Jadwal "${tugas.judul}" tidak memiliki lampiran.`);
         }
 
-        // 🔄 DIPERBARUI: Menggunakan `tugas.judul`
-        await sock.sendMessage(groupJid, { text: `Mengirim ${tugas.lampiran.length} lampiran untuk jadwal "${tugas.judul}"...` }, { quoted: msg });
+        await replyWithTyping(sock, msg, `Mengirim ${tugas.lampiran.length} lampiran untuk jadwal "${tugas.judul}"...`);
 
         for (const fileName of tugas.lampiran) {
             const filePath = path.join(MEDIA_DIR, groupJid, fileName);
             if (fs.existsSync(filePath)) {
                 const mimeType = mime.lookup(filePath);
                 
-                // 🔄 DIPERBARUI: Menggunakan `tugas.judul`
                 let messageOptions = { caption: `Lampiran untuk: ${tugas.judul}\nFile: ${fileName}`, fileName: fileName };
                 
                 if (mimeType && mimeType.startsWith('image/')) {
@@ -46,9 +45,9 @@ module.exports = {
                 }
                 
                 await sock.sendMessage(groupJid, messageOptions);
-                await new Promise(res => setTimeout(res, 500)); // Jeda singkat
+                await new Promise(res => setTimeout(res, 800));
             } else {
-                await sock.sendMessage(groupJid, { text: `⚠️ Maaf, file lampiran "${fileName}" tidak dapat ditemukan di server.` }, { quoted: msg });
+                await replyWithTyping(sock, msg, `⚠️ Maaf, file lampiran "${fileName}" tidak dapat ditemukan di server.`);
             }
         }
     }
