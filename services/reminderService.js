@@ -40,7 +40,7 @@ const startReminderService = (sock) => {
                 if (reminderText) {
                     // 🔄 DIPERBARUI: Menampilkan jam pada pesan pengingat
                     const fullMessage = `${reminderText}\n\n` +
-                                      `*Matkul:* ${tugas.matkul}\n` +
+                                      `*Judul:* ${tugas.judul}\n` +
                                       `*Tugas:* ${tugas.deskripsi}\n` +
                                       `*Tenggat:* ${format(deadlineDate, 'EEEE, d MMMM yyyy, HH:mm', { locale: id })}\n\n` +
                                       `Segera selesaikan ya! 💪`;
